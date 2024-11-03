@@ -392,6 +392,35 @@ void em_ordem(Pagina* raiz)
     }
 }
 
+Pagina* em_ordem_encontra(Pagina* raiz, int k) {
+    if (raiz == NULL) {
+        return NULL;
+    }
+
+    Nod *aux = raiz->listaChaves->ini;
+
+    // varre da esq p dir
+    while (aux != NULL) {
+        // Busca no filho esquerdo da chave atual
+        Pagina *result = em_ordem_encontra(((Chave*)aux->info)->filho, k);
+        if (result != NULL) {
+            return result;  // Encontrou k na esq
+        }
+
+        // se ch e k
+        if (((Chave*)aux->info)->valorChave == k) {
+            return raiz;  // Retorna o nó aonde esta k
+        }
+
+        aux = aux->prox;
+    }
+
+    // Busca no último a dir
+    return em_ordem_encontra(raiz->direita, k);
+}
+
+
+
 Chave* retira_ultima_chave(Pagina* folha)
 {
     Nod* ultimo_no = remove_fim_listad(folha->listaChaves);
@@ -465,12 +494,213 @@ Nod* busca(Pagina* paginaArvore, int valor, int i){
     }
 }
 
+Nod *buscar(Listad *l, int valor) {
+    Nod *aux = l->ini;
+
+    // Percorre a lista até encontrar o valor ou chegar ao fim
+    while (aux != NULL) {
+        if (getChave(aux) == valor) {
+            return aux;  // Retorna o nó se a chave for encontrada
+        }
+        aux = aux->prox;
+    }
+    return NULL;  // Retorna NULL se a chave não for encontrada
+}
+
+Nod *removerNo(Listad *l, int valor) {
+    Nod *aux = buscar(l, valor);
+
+    // Verifica se o nó com o valor foi encontrado
+    if (aux == NULL) {
+        return NULL;  // Retorna NULL se o valor não foi encontrado
+    }
+
+    // Remoção do nó no meio da lista
+    if (aux->prox != NULL && aux->ant != NULL) {
+        aux->ant->prox = aux->prox;
+        aux->prox->ant = aux->ant;
+    }
+    // Remoção do nó no fim da lista
+    else if (aux == l->fim) {
+        l->fim = aux->ant;
+        if (l->fim != NULL) {
+            l->fim->prox = NULL;
+        } else {
+            l->ini = NULL;  // Se a lista fica vazia
+        }
+    }
+    // Remoção do nó no início da lista
+    else if (aux == l->ini) {
+        l->ini = aux->prox;
+        if (l->ini != NULL) {
+            l->ini->ant = NULL;
+        } else {
+            l->fim = NULL;  // Se a lista fica vazia
+        }
+    }
+
+    // Desconecta o nó e retorna
+    aux->prox = aux->ant = NULL;
+    return aux;
+}
+
+Pagina *encontra_folha2(Pagina *raiz, int valor) {
+    Pagina *pagina_atual = raiz;
+
+    // Verifica se a árvore está vazia
+    if (pagina_atual == NULL) {
+        return NULL;
+    }
+
+    // Enquanto não atingir uma página folha
+    while (pagina_atual->folha != 1) {
+        Nod *aux_lista = pagina_atual->listaChaves->ini;
+        Pagina *filho_proximo = NULL;
+
+        // Percorre a lista de chaves da página atual
+        while (aux_lista != NULL) {
+            if (valor < getChave(aux_lista)) {
+                // Se o valor é menor que a chave atual, vai para o filho à esquerda dessa chave
+                filho_proximo = getFilho(aux_lista);
+                break;
+            }
+            aux_lista = aux_lista->prox;
+        }
+
+        // Se o valor é maior que todas as chaves, vai para o filho à direita
+        if (filho_proximo == NULL) {
+            filho_proximo = pagina_atual->direita;
+        }
+
+        // Move para a próxima página
+        pagina_atual = filho_proximo;
+    }
+
+    // Retorna a página folha onde o valor deve estar
+    return pagina_atual;
+}
+
+
+
+void folhaAdjacente(Pagina* raiz, int k, int ordem){
+    printf("o kkkkkkkkkkkkkkkk %d", k);
+    Pagina *pagK=NULL, *pagPaiK=NULL;
+    pagK=encontra_folha(raiz, k);
+    printf("a pag K aquiiiiiiiiiiii %d \n  ", getChave(pagK->listaChaves->ini));
+    pagPaiK=pagK->pai;
+    Nod* noPai=pagPaiK->listaChaves->ini;
+
+    Pagina *paginaNopai=NULL;
+
+    //encontrar no com o filhonque leva a pagK
+    Nod *noPaiCasoSejaDir=NULL;
+    while (noPai != NULL && getFilho(noPai) != pagK){
+        if(noPai->prox==NULL)
+            noPaiCasoSejaDir=noPai;
+        noPai = noPai->prox;
+    } 
+        
+
+    //a existencia do no corrigido se deve que a direita é do tipo *pagina e nao *nod 
+    //tratar direita
+    Nod *noCorrigido=NULL;
+
+    if(noPai==NULL){
+        noCorrigido = (Nod *)malloc(sizeof(Nod));
+        Chave *ch = malloc(sizeof(Chave));
+        noCorrigido->info= ch;
+        ch->filho = pagPaiK->direita;
+        ch->valorChave=9999;
+        noCorrigido->ant=noPaiCasoSejaDir;
+        noCorrigido->info=ch;
+        noCorrigido->prox=(getFilho(pagPaiK->pai->direita->listaChaves->ini))->listaChaves->ini;
+        printf("  entrou aqui   ");
+    }else{
+        noCorrigido=noPai;
+    }
+    
+    printf("esse e o no corrigido %d  ", getChave(noCorrigido));
+    //verificar subarvores
+    int irmao_dir =0, irmao_esq=0; 
+    //tratar se for nulo 
+    if(noCorrigido!=NULL && noCorrigido->info!=NULL){
+        
+        
+        if(noCorrigido->prox==NULL)
+            irmao_dir=0;
+        else
+            irmao_dir = (getFilho(noCorrigido->prox))->qtdeChaves;
+    
+        if((noCorrigido->ant)==NULL)
+            irmao_esq=0;
+        else
+            irmao_esq = (getFilho(noCorrigido->ant))->qtdeChaves;
+    }
+
+    // printf("A PAGINA DOADORA")
+    Pagina *pagDoadora=NULL;
+    if(irmao_dir>irmao_esq){
+        //caso o da direita tenha mais elementos
+        pagDoadora=(getFilho(noCorrigido->prox));
+        printf("da direita ta sendo maior");
+    }
+    else if(irmao_esq>irmao_dir){
+        //caso o da esq tenha mais elementos 
+        pagDoadora=(getFilho(noCorrigido->ant));
+    }
+    else if(irmao_dir==0){
+        //caso nao tenha a subarvore a direita
+        pagDoadora=(getFilho(noCorrigido->ant));
+    }
+    else if(irmao_esq==0){
+        //caso nao tenha a subarvore a esquerda
+        pagDoadora=(getFilho(noCorrigido->prox));
+    }
+    else if(irmao_dir==irmao_esq){
+        //caso sejam iguais
+        printf("\n\n\no problema ta na anterior deser iguais");
+        pagDoadora=(getFilho(noCorrigido->ant));
+    }
+
+    if(pagDoadora->qtdeChaves>=((ordem + 1) / 2) - 1){
+        //remover o k
+        Nod *aux=NULL, *aux2=NULL;
+        if(irmao_dir<irmao_esq){
+            //remover da doadora
+            aux=remove_fim_listad(pagDoadora->listaChaves);
+            pagDoadora->qtdeChaves--;
+            //remover o k
+            aux2=removerNo(pagK->listaChaves, k);
+            pagK->qtdeChaves--;
+            free(aux2);
+            //inserir no pai
+            insere_ordenado(pagPaiK->listaChaves, aux->info);
+            
+        }else{
+            //remover da doadora
+
+            printf("\n\nA pagina doadora e %d\n\n", getChave(pagDoadora->listaChaves->ini));
+            aux=remove_inicio_listad(pagDoadora->listaChaves);
+            pagDoadora->qtdeChaves--;
+            printf("eleaquiAUX %d qq", getChave(aux));
+            //remover o k
+            aux2=removerNo(pagK->listaChaves, k);
+            pagK->qtdeChaves--;
+            printf("reocao do k(28)k %d      ", getChave(aux2));
+            free(aux2);
+            //inserir no pai
+            insere_ordenado(pagPaiK->listaChaves, aux->info);
+        }
+    }
+}
+
 int main(){
     Arvoreb* tree;
-    int ordem=0, input=0;
+    int ordem=0, input=0, k=0;
 
     //criar arvore
     scanf("%d", &ordem);
+    scanf("%d", &k);
     tree=cria_arvoreb(ordem);
 
     //entrada dos dados na arvore
@@ -481,50 +711,15 @@ int main(){
         scanf("%d", &input);
     }
 
-    //em_ordem(tree->raiz);
-    int valor=0, i=0;
-    scanf("%d", &valor);
-    Nod* noPrint=busca(tree->raiz, valor, i);
-    printf("\n\nEsse e o no %d", getChave(noPrint));
+
+    folhaAdjacente(tree->raiz, k, ordem);
+    printf("a raiz  %d", getChave(tree->raiz->listaChaves->ini));
+    em_ordem(tree->raiz);
+    // int valor=0, i=0;
+    // scanf("%d", &valor);
+    // Nod* noPrint=busca(tree->raiz, valor, i);
+    // printf("\n\nEsse e o no %d", getChave(noPrint));
     return 0;
 }
 
-Pagina* folhaAdjacente(Pagina* raiz, int k){
-    Pagina *pagK=NULL, *pagPaiK=NULL;
-    pagK=encontra_folha(raiz, k);
-    pagPaiK=pagK->pai;
-    
-    Nod* noPai=pagPaiK->listaChaves->ini;
-    
-    
-    
-    //encontrar no com o filhonque leva a pagK
-    while(getFilho(noPai)!=pagK && (noPai)!=NULL)
-        noPai=noPai->prox;
-
-    if(noPai==NULL)
-        noPai=pagPaiK->direita;
-
-    //verificar subarvores
-    int irmao_dir =0, irmao_esq=0; 
-    //tratar se for nulo
-    int irmao_dir = (getFilho(noPai->prox))->qtdeChaves;
-    int irmao_esq = (getFilho(noPai->ant))->qtdeChaves;
-
-    if(irmao_dir>irmao_esq){
-        //caso o da direita tenha mais elementos
-
-    }
-    else if(irmao_esq>irmao_dir){
-        //caso o da esq tenha mais elementos 
-    }
-    else if(irmao_dir==0){
-        //caso nao tenha a subarvore a direita
-    }
-    else{
-        //caso nao tenha a subarvore a esquerda
-    }
-
-    //return pagina;
-}
 
